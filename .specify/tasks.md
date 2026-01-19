@@ -14,7 +14,7 @@
 - [X] T001 [US01] [P1] Setup project repository structure
 - [ ] T002 [US01] [P2] [PARALLEL] Create initial documentation
 - [ ] T003 [US01] [P2] [PARALLEL] Configure CI/CD pipeline
-- [ ] T004 [US01] [P3] Add contributing guidelines
+- [X] T004 [US01] [P3] Add contributing guidelines
 
 ---
 
@@ -32,3 +32,4 @@
 - [ ] T009 [US03] [P2] Create status labels (in-progress, blocked, review)
 - [x] T010 [US03] [P3] Document label usage (already done)
 - [ ] T011 [US03] [P2] [PARALLEL] Test spec expansion edge case
+- [ ] T012 [US01] [P1] E2E test: fresh sync with milestone assignment

@@ -26,7 +26,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 02-01: Test Speckit taskstoissues sync
+- [x] 02-01: Test Speckit taskstoissues sync
 - [ ] 02-02: Test bidirectional sync (close issue → mark task complete)
 
 ### Phase 3: Advanced Features
@@ -38,6 +38,7 @@ Plans:
 - [ ] 03-01: Test GitHub Project board integration
 - [ ] 03-02: Test cross-framework compatibility
 - [ ] 03-03: Test spec expansion edge case (newly added)
+- [ ] 03-04: E2E test: fresh GSD sync with milestone
 
 ## Progress
 

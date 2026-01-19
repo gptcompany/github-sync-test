@@ -1,0 +1,303 @@
+# GitHub Sync Workflow
+# Automatically syncs Speckit tasks.md and GSD ROADMAP.md to GitHub Issues
+#
+# Setup:
+# 1. Copy this file to .github/workflows/github-sync.yml
+# 2. Ensure GITHUB_TOKEN has 'issues' and 'project' permissions
+# 3. (Optional) Add the Python scripts to your repo or use the action to fetch them
+#
+# Triggers:
+# - Push to feature branches: Sync tasks/plans to issues
+# - Push to main: Final sync
+# - PR events: Update issue status
+# - Manual: workflow_dispatch
+
+name: GitHub Sync
+
+on:
+  push:
+    branches:
+      - main
+      - master
+      - 'feature/**'
+      - 'feat/**'
+    paths:
+      # Speckit paths
+      - '.specify/**/tasks.md'
+      - 'specs/**/tasks.md'
+      # GSD paths
+      - '.planning/ROADMAP.md'
+      - '.planning/todos/**'
+
+  pull_request:
+    types: [opened, closed, synchronize]
+    paths:
+      - '.specify/**/tasks.md'
+      - 'specs/**/tasks.md'
+      - '.planning/ROADMAP.md'
+
+  workflow_dispatch:
+    inputs:
+      sync_mode:
+        description: 'Sync mode'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - speckit
+          - gsd
+          - bidirectional
+      dry_run:
+        description: 'Dry run (preview only)'
+        required: false
+        default: false
+        type: boolean
+      create_project:
+        description: 'Create project board if missing'
+        required: false
+        default: false
+        type: boolean
+      sync_todos:
+        description: 'Sync GSD todos'
+        required: false
+        default: true
+        type: boolean
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      has_speckit: ${{ steps.detect.outputs.has_speckit }}
+      has_gsd: ${{ steps.detect.outputs.has_gsd }}
+      speckit_path: ${{ steps.detect.outputs.speckit_path }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Detect frameworks
+        id: detect
+        run: |
+          # Detect Speckit
+          if [ -f ".specify/tasks.md" ]; then
+            echo "has_speckit=true" >> $GITHUB_OUTPUT
+            echo "speckit_path=.specify" >> $GITHUB_OUTPUT
+          elif TASKS=$(find specs -name "tasks.md" -type f 2>/dev/null | head -1); then
+            if [ -n "$TASKS" ]; then
+              echo "has_speckit=true" >> $GITHUB_OUTPUT
+              echo "speckit_path=$(dirname $TASKS)" >> $GITHUB_OUTPUT
+            else
+              echo "has_speckit=false" >> $GITHUB_OUTPUT
+            fi
+          else
+            echo "has_speckit=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Detect GSD
+          if [ -f ".planning/ROADMAP.md" ]; then
+            echo "has_gsd=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_gsd=false" >> $GITHUB_OUTPUT
+          fi
+
+  sync-speckit:
+    needs: detect
+    if: |
+      needs.detect.outputs.has_speckit == 'true' &&
+      (github.event.inputs.sync_mode == 'auto' ||
+       github.event.inputs.sync_mode == 'speckit' ||
+       github.event.inputs.sync_mode == '')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      repository-projects: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch sync scripts
+        run: |
+          mkdir -p scripts
+          # Fetch from your scripts location or include in repo
+          # Option 1: Copy from a central location
+          # curl -o scripts/github_sync_core.py https://raw.githubusercontent.com/YOUR_ORG/claude-scripts/main/github_sync_core.py
+          # curl -o scripts/taskstoissues.py https://raw.githubusercontent.com/YOUR_ORG/claude-scripts/main/taskstoissues.py
+
+          # Option 2: Use scripts already in repo
+          if [ -f ".claude/scripts/taskstoissues.py" ]; then
+            cp .claude/scripts/taskstoissues.py scripts/
+            cp .claude/scripts/github_sync_core.py scripts/ 2>/dev/null || true
+          else
+            echo "Warning: Scripts not found in repo. Skipping sync."
+            exit 0
+          fi
+
+      - name: Sync Speckit to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS="--tasks-file ${{ needs.detect.outputs.speckit_path }}/tasks.md --auto-project"
+
+          if [ "${{ github.event.inputs.create_project }}" == "true" ]; then
+            ARGS="$ARGS --create-project"
+          fi
+
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          cd scripts
+          python taskstoissues.py $ARGS
+
+  sync-gsd:
+    needs: detect
+    if: |
+      needs.detect.outputs.has_gsd == 'true' &&
+      (github.event.inputs.sync_mode == 'auto' ||
+       github.event.inputs.sync_mode == 'gsd' ||
+       github.event.inputs.sync_mode == '')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+      repository-projects: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch sync scripts
+        run: |
+          mkdir -p scripts
+          # Similar to Speckit job
+          if [ -f ".claude/scripts/roadmaptoissues.py" ]; then
+            cp .claude/scripts/roadmaptoissues.py scripts/
+            cp .claude/scripts/github_sync_core.py scripts/ 2>/dev/null || true
+          else
+            echo "Warning: Scripts not found in repo. Skipping sync."
+            exit 0
+          fi
+
+      - name: Sync GSD to GitHub
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          ARGS="--roadmap .planning/ROADMAP.md --auto-project"
+
+          if [ "${{ github.event.inputs.create_project }}" == "true" ]; then
+            ARGS="$ARGS --create-project"
+          fi
+
+          if [ "${{ github.event.inputs.sync_todos }}" == "true" ]; then
+            ARGS="$ARGS --sync-todos"
+          fi
+
+          if [ "${{ github.event.inputs.dry_run }}" == "true" ]; then
+            ARGS="$ARGS --dry-run"
+          fi
+
+          cd scripts
+          python roadmaptoissues.py $ARGS
+
+  bidirectional-sync:
+    needs: detect
+    if: github.event.inputs.sync_mode == 'bidirectional'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Fetch sync scripts
+        run: |
+          mkdir -p scripts
+          if [ -f ".claude/scripts/taskstoissues.py" ]; then
+            cp .claude/scripts/*.py scripts/
+          else
+            echo "Warning: Scripts not found in repo."
+            exit 0
+          fi
+
+      - name: Bidirectional Sync - Speckit
+        if: needs.detect.outputs.has_speckit == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd scripts
+          python taskstoissues.py --sync ${{ needs.detect.outputs.speckit_path }}
+
+      - name: Bidirectional Sync - GSD
+        if: needs.detect.outputs.has_gsd == 'true'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cd scripts
+          python roadmaptoissues.py --sync .planning
+
+      - name: Commit changes
+        run: |
+          git config --local user.email "github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add -A
+          git diff --cached --quiet || git commit -m "chore: sync task status from closed issues"
+          git push
+
+  # Close issues when PR is merged (tasks completed)
+  pr-merged:
+    if: github.event.pull_request.merged == true
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Extract task IDs from PR
+        id: extract
+        run: |
+          # Extract task IDs mentioned in PR body or commits
+          TASK_IDS=$(echo "${{ github.event.pull_request.body }}" | grep -oE '\[T[0-9]+\]' | tr -d '[]' | sort -u)
+          PLAN_IDS=$(echo "${{ github.event.pull_request.body }}" | grep -oE 'Plan-[0-9]+-[0-9]+' | sort -u)
+
+          echo "task_ids=$TASK_IDS" >> $GITHUB_OUTPUT
+          echo "plan_ids=$PLAN_IDS" >> $GITHUB_OUTPUT
+
+      - name: Close related issues
+        if: steps.extract.outputs.task_ids != '' || steps.extract.outputs.plan_ids != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Close Speckit task issues
+          for TASK_ID in ${{ steps.extract.outputs.task_ids }}; do
+            ISSUE_NUM=$(gh issue list --search "[$TASK_ID] in:title" --json number -q '.[0].number')
+            if [ -n "$ISSUE_NUM" ]; then
+              gh issue close $ISSUE_NUM --comment "Closed by PR #${{ github.event.pull_request.number }}"
+            fi
+          done
+
+          # Close GSD plan issues
+          for PLAN_ID in ${{ steps.extract.outputs.plan_ids }}; do
+            ISSUE_NUM=$(gh issue list --search "[$PLAN_ID] in:title" --json number -q '.[0].number')
+            if [ -n "$ISSUE_NUM" ]; then
+              gh issue close $ISSUE_NUM --comment "Closed by PR #${{ github.event.pull_request.number }}"
+            fi
+          done
