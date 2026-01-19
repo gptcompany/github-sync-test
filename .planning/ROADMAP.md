@@ -17,7 +17,7 @@ Testing journey from basic issue sync to full bidirectional GitHub integration.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01: Setup repository structure and workflows
+- [x] 01-01: Setup repository structure and workflows
 - [ ] 01-02: Configure GitHub labels and milestones
 
 ### Phase 2: Issue Sync
@@ -32,11 +32,12 @@ Plans:
 ### Phase 3: Advanced Features
 **Goal**: Test advanced GitHub integrations
 **Depends on**: Phase 2
-**Plans**: 2 plans
+**Plans**: 3 plans
 
 Plans:
 - [ ] 03-01: Test GitHub Project board integration
 - [ ] 03-02: Test cross-framework compatibility
+- [ ] 03-03: Test spec expansion edge case (newly added)
 
 ## Progress
 

@@ -11,7 +11,7 @@
 
 ### US01: Basic Issue Creation
 
-- [ ] T001 [US01] [P1] Setup project repository structure
+- [X] T001 [US01] [P1] Setup project repository structure
 - [ ] T002 [US01] [P2] [PARALLEL] Create initial documentation
 - [ ] T003 [US01] [P2] [PARALLEL] Configure CI/CD pipeline
 - [ ] T004 [US01] [P3] Add contributing guidelines
@@ -31,3 +31,4 @@
 - [ ] T008 [US03] [P1] Create priority labels (P1, P2, P3)
 - [ ] T009 [US03] [P2] Create status labels (in-progress, blocked, review)
 - [x] T010 [US03] [P3] Document label usage (already done)
+- [ ] T011 [US03] [P2] [PARALLEL] Test spec expansion edge case
