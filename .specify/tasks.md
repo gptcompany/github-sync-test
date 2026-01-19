@@ -20,7 +20,7 @@
 
 ### US02: Milestone Integration
 
-- [ ] T005 [US02] [P1] Define v1.0 milestone requirements
+- [X] T005 [US02] [P1] Define v1.0 milestone requirements
 - [ ] T006 [US02] [P2] Link issues to milestone
 - [ ] T007 [US02] [P2] [PARALLEL] Setup milestone progress tracking
 

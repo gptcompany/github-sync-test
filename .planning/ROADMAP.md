@@ -27,7 +27,7 @@ Plans:
 
 Plans:
 - [x] 02-01: Test Speckit taskstoissues sync
-- [ ] 02-02: Test bidirectional sync (close issue → mark task complete)
+- [x] 02-02: Test bidirectional sync (close issue → mark task complete)
 
 ### Phase 3: Advanced Features
 **Goal**: Test advanced GitHub integrations
