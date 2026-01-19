@@ -1,0 +1,54 @@
+name: Setup SpecKit Labels
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/labels.yml'
+
+jobs:
+  setup-labels:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Create labels
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = [
+              // Priority
+              { name: 'P1', color: 'b60205', description: 'Critical priority' },
+              { name: 'P2', color: 'fbca04', description: 'High priority' },
+              { name: 'P3', color: '0e8a16', description: 'Normal priority' },
+              // Status
+              { name: 'in-progress', color: '1d76db', description: 'Currently being worked on' },
+              { name: 'blocked', color: 'd93f0b', description: 'Blocked by dependency' },
+              { name: 'review', color: 'c5def5', description: 'Ready for review' },
+              // Type
+              { name: 'parallelizable', color: '5319e7', description: 'Can run in parallel' },
+              { name: 'evolve', color: 'bfdadc', description: 'May evolve during implementation' },
+              // Framework
+              { name: 'speckit', color: '006b75', description: 'SpecKit framework task' },
+              { name: 'gsd', color: 'd4c5f9', description: 'GSD framework task' }
+            ];
+            
+            for (const label of labels) {
+              try {
+                await github.rest.issues.createLabel({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  name: label.name,
+                  color: label.color,
+                  description: label.description
+                });
+                console.log(`Created: ${label.name}`);
+              } catch (e) {
+                if (e.status === 422) {
+                  console.log(`Exists: ${label.name}`);
+                } else {
+                  console.error(`Error: ${label.name}`, e.message);
+                }
+              }
+            }
