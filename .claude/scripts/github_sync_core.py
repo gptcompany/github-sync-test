@@ -42,8 +42,13 @@ STANDARD_LABELS = {
     "gsd-plan": {"color": "006b75", "description": "GSD plan"},
 }
 
-# Standard ProjectV2 columns for Kanban board
-PROJECT_COLUMNS = ["Backlog", "In Progress", "Review", "Done"]
+# Standard ProjectV2 columns for Kanban board (4 columns)
+PROJECT_COLUMNS = [
+    {"name": "Backlog", "color": "GRAY", "description": "Not started"},
+    {"name": "In Progress", "color": "YELLOW", "description": "Being worked on"},
+    {"name": "Review", "color": "PURPLE", "description": "In review"},
+    {"name": "Done", "color": "GREEN", "description": "Completed"},
+]
 
 
 @dataclass
@@ -336,14 +341,78 @@ def create_project(
     project_data = result.get("data", {}).get("createProjectV2", {}).get("projectV2")
     if project_data:
         print(f"Created project: {project_name}")
-        return ProjectInfo(
+        project_info = ProjectInfo(
             id=project_data["id"],
             number=project_data["number"],
             title=project_data["title"],
             url=project_data["url"],
         )
+        # Configure 4-column Kanban board
+        _configure_project_columns(project_info.id)
+        return project_info
 
     return None
+
+
+def _configure_project_columns(project_id: str) -> bool:
+    """Configure project Status field with 4-column Kanban layout.
+
+    Args:
+        project_id: GraphQL node ID of the project
+
+    Returns:
+        True if successful
+    """
+    # Get the Status field ID
+    query = """
+    query($projectId: ID!) {
+      node(id: $projectId) {
+        ... on ProjectV2 {
+          field(name: "Status") {
+            ... on ProjectV2SingleSelectField {
+              id
+            }
+          }
+        }
+      }
+    }
+    """
+    result = run_graphql_query(query, {"projectId": project_id}, silent=True)
+    if not result:
+        return False
+
+    field_data = result.get("data", {}).get("node", {}).get("field")
+    if not field_data or not field_data.get("id"):
+        return False
+
+    field_id = field_data["id"]
+
+    # Build options from PROJECT_COLUMNS
+    options_str = ", ".join(
+        f'{{ name: "{col["name"]}", color: {col["color"]}, description: "{col["description"]}" }}'
+        for col in PROJECT_COLUMNS
+    )
+
+    mutation = f"""
+    mutation {{
+      updateProjectV2Field(input: {{
+        fieldId: "{field_id}"
+        singleSelectOptions: [{options_str}]
+      }}) {{
+        projectV2Field {{
+          ... on ProjectV2SingleSelectField {{
+            options {{ name }}
+          }}
+        }}
+      }}
+    }}
+    """
+
+    result = run_graphql_query(mutation, silent=True)
+    if result and result.get("data"):
+        print("  Configured 4-column Kanban board")
+        return True
+    return False
 
 
 def ensure_project_exists(
