@@ -141,7 +141,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ARGS="--tasks-file ${{ needs.detect.outputs.speckit_path }}/tasks.md --auto-project"
+          ARGS="--tasks-file $GITHUB_WORKSPACE/${{ needs.detect.outputs.speckit_path }}/tasks.md --auto-project"
 
           if [ "${{ github.event.inputs.create_project }}" == "true" ]; then
             ARGS="$ARGS --create-project"
@@ -191,7 +191,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          ARGS="--roadmap .planning/ROADMAP.md --auto-project"
+          ARGS="--roadmap $GITHUB_WORKSPACE/.planning/ROADMAP.md --auto-project"
 
           if [ "${{ github.event.inputs.create_project }}" == "true" ]; then
             ARGS="$ARGS --create-project"
@@ -243,7 +243,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd scripts
-          python taskstoissues.py --sync ${{ needs.detect.outputs.speckit_path }}
+          python taskstoissues.py --sync $GITHUB_WORKSPACE/${{ needs.detect.outputs.speckit_path }}
 
       - name: Bidirectional Sync - GSD
         if: needs.detect.outputs.has_gsd == 'true'
@@ -251,7 +251,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           cd scripts
-          python roadmaptoissues.py --sync .planning
+          python roadmaptoissues.py --sync $GITHUB_WORKSPACE/.planning
 
       - name: Commit changes
         run: |
