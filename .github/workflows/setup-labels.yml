@@ -9,7 +9,7 @@ on:
 
 jobs:
   setup-labels:
-    runs-on: ubuntu-latest
+    runs-on: ${{ vars.CI_RUNS_ON || 'sg-ci' }}
     steps:
       - uses: actions/checkout@v4
       

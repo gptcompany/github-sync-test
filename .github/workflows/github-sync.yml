@@ -66,7 +66,7 @@ on:
 
 jobs:
   detect:
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     outputs:
       has_speckit: ${{ steps.detect.outputs.has_speckit }}
       has_gsd: ${{ steps.detect.outputs.has_gsd }}
@@ -106,7 +106,7 @@ jobs:
       (github.event.inputs.sync_mode == 'auto' ||
        github.event.inputs.sync_mode == 'speckit' ||
        github.event.inputs.sync_mode == '')
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       issues: write
       contents: read
@@ -161,7 +161,7 @@ jobs:
       (github.event.inputs.sync_mode == 'auto' ||
        github.event.inputs.sync_mode == 'gsd' ||
        github.event.inputs.sync_mode == '')
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       issues: write
       contents: read
@@ -211,7 +211,7 @@ jobs:
   bidirectional-sync:
     needs: detect
     if: github.event.inputs.sync_mode == 'bidirectional'
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       issues: write
       contents: write
@@ -264,7 +264,7 @@ jobs:
   # Close issues when PR is merged (tasks completed)
   pr-merged:
     if: github.event.pull_request.merged == true
-    runs-on: ubuntu-latest
+    runs-on: ${{ (github.event_name == 'pull_request' || github.event_name == 'pull_request_review') && github.event.pull_request.head.repo.full_name != github.repository && 'ubuntu-latest' || vars.CI_RUNS_ON || 'sg-ci' }}
     permissions:
       issues: write
 
